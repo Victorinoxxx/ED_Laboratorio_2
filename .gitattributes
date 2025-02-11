@@ -1,2 +1,113 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+/*
+ * Laboratorio_2.c
+ *
+ * Author : VICTOR VANEGAS
+ */ 
+#define F_CPU 16000000UL
+#include <util/delay.h>
+#include <avr/io.h>
+#include <stdlib.h>
+#include "LCD/LCD.h"
+#include "ADC/ADC.h"
+#include "UART/UART.h"
+
+char str[10], opcion = '0';
+uint16_t adc1, adc2;
+float v1, v2, cont;
+
+// Función para convertir un número a ASCII
+void int_to_ascii(uint16_t valor, char *buffer) {
+	buffer[0] = (valor / 100) + '0';
+	buffer[1] = ((valor / 10) % 10) + '0';
+	buffer[2] = (valor % 10) + '0';
+	buffer[3] = '\0';
+}
+
+// Función para actualizar la LCD
+void LCD(uint16_t p1, uint16_t p2, int16_t contador) {
+	char buffer[10];
+	// Pot 1
+	dtostrf((5.0 / 1023) * p1, 1, 2, buffer);
+	LCD_Set_Cursor(1, 2);
+	LCD_Write_String(buffer);
+	LCD_Write_String("V");
+	// Pot 2
+	dtostrf((5.0 / 1023) * p2, 1, 2, buffer);
+	LCD_Set_Cursor(7, 2);
+	LCD_Write_String(buffer);
+	LCD_Write_String("V");
+	// Pot 1
+	itoa(contador, str, 10);
+	LCD_Set_Cursor(15, 2);
+	LCD_Write_String("    "); // Limpiar espacio
+	LCD_Set_Cursor(15, 2);
+	LCD_Write_String(str);
+}
+
+int main(void) {
+	ADC_init();
+	initLCD8bits();
+	UART_Init(9600);  // Inicializar UART con baudrate 9600
+	
+	LCD_Set_Cursor(1, 1);
+	LCD_Write_String(" S1     S2    S3");
+	
+	// Interfaz MobaXterm
+	UART_Write_Text("Seleccione una opcion:\n \r");
+	UART_Write_Text("1) Leer sensores S1 y S2\n \r");
+	UART_Write_Text("2) Modificar contador\n \r");
+
+	while (1) {
+		adc1 = ADC_read(1);
+		adc2 = ADC_read(0);
+		// Mostrar valor de potenciometros
+		LCD(adc1, adc2, contador);
+		_delay_ms(100);
+		
+		if (UCSR0A & (1 << RXC0)) {
+			opcion = UART_Read(); // Guardar la opción seleccionada
+		}
+
+		if (opcion == '1'){
+			// Leer el valor del primer canal (PC0)
+			UART_Write_Text("Sensor 1: ");
+			dtostrf((5.0 / 1023) * adc1, 1, 2, str);
+			//int_to_ascii(dato_adc1, str);
+			UART_Write_Text(str);
+			UART_Write_Text("V \n \r");
+
+			// Leer el valor del segundo canal (PC1)
+			UART_Write_Text("Sensor 2: ");
+			dtostrf((5.0 / 1023) * adc2, 1, 2, str);
+			//int_to_ascii(dato_adc1, str);
+			UART_Write_Text(str);
+			UART_Write_Text("V \n \r");	
+			
+			opcion = '0';
+			// Interfaz MobaXterm
+			UART_Write_Text("Seleccione una opcion:\n \r");
+			UART_Write_Text("1) Leer sensores S1 y S2\n \r");
+			UART_Write_Text("2) Modificar contador\n \r");
+			
+		}else if (opcion == '2'){
+		
+			UART_Write_Text("Incrementar (+) o Decrementar (-) \n \r");
+			// Leer comandos desde UART
+			while(opcion == '2'){
+			
+			
+			if (UCSR0A & (1 << RXC0)) { // Si hay datos en el buffer de recepción
+				char command = UART_Read();
+				UART_ProcessCommand(command);
+				
+				opcion = '0';
+			}
+		}
+			// Interfaz MobaXterm
+			UART_Write_Text("Seleccione una opcion:\n \r");
+			UART_Write_Text("1) Leer sensores S1 y S2\n \r");
+			UART_Write_Text("2) Modificar contador\n \r");
+			
+		}
+	}
+}
