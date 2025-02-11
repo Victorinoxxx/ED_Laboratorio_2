@@ -1,23 +1,31 @@
 /*
- * ADC.c
+ * LCD.h
  *
  *  Author: VICTOR VANEGAS
  */ 
-#include "ADC.h"
+#ifndef LCD_H_
+#define LCD_H_
+#define F_CPU 16000000UL
+#include <avr/io.h>
 #include <util/delay.h>
 
-void ADC_init(void) {
-	// Configuracion de los pines PC0 y PC0 como entrada
-	DDRC &= ~(1 << PORTC0)|(1 << PORTC1);
-	ADMUX = (1 << REFS0); // Voltaje de referencia AVcc (5V)
-	ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0); // Habilitar ADC y preescaler de 128 (125kHz)
-}
+#define E (1<<PORTB1)
 
-uint16_t ADC_read(uint8_t canal) {
-	canal &= 0x0F;
-	ADMUX = (ADMUX & 0xF0) | canal; // Seleccionar el canal
-	ADCSRA |= (1 << ADSC); // Iniciar la conversión
-	while (ADCSRA & (1 << ADSC)); // Esperar a que la conversión termine
-	_delay_ms(100);
-	return ADC;
-} 
+//Funcion para inicializar LCD en modo 8 bits
+void initLCD8bits(void);
+//Funcion para colocar en el puerto un valor
+void LCD_Port(char a);
+//Funcion para enviar un comando
+void LCD_CMD(char a);
+//Funcion para enviar un caracter
+void LCD_Write_Char(char c);
+//Funcion para enviar una cadena
+void LCD_Write_String(char *a);
+//Desplazamiento a la derecha
+void LCD_Shift_Right(void);
+//Desplazamiento a la izquierda
+void LCD_Shift_Left(void);
+//Establecer el cursor
+void LCD_Set_Cursor(char c, char f);
+
+#endif
